@@ -19,7 +19,9 @@ def create_app():
     os.makedirs('static/exports', exist_ok=True)
 
     # Import comparison utilities
-    from utils.comparison import compare_documents, find_similar_documents, highlight_differences
+    from utils.comparison import compare_documents, find_similar_documents, highlight_differences, find_common_paragraphs, get_document_clustering
+    from utils.analyzer import DocumentAnalyzer
+    from utils.ocr_processor import OCRProcessor
 
     # Create tables - this function is used with app context
     with app.app_context():
@@ -273,6 +275,215 @@ def create_app():
         return render_template('similar_documents.html', 
                              document=document, 
                              similar_docs=similar_docs)
+                             
+    @app.route('/paragraph-analysis')
+    def paragraph_analysis():
+        """Paragraph analysis dashboard view."""
+        # Get filter parameters
+        doc_ids = request.args.getlist('doc_ids', type=int)
+        similarity_threshold = request.args.get('similarity', type=float, default=0.7)
+        para_type = request.args.get('para_type', default='all')
+        
+        # If no documents selected, default to all
+        if not doc_ids:
+            doc_ids = [doc.id for doc in Document.query.all()]
+        
+        # Initialize the analyzer
+        analyzer = DocumentAnalyzer()
+        analyzer.load_data()
+        
+        # Get paragraph statistics
+        stats = analyzer.get_paragraph_stats()
+        
+        # Get paragraph clusters
+        clusters = analyzer.get_paragraph_clusters(min_similarity=similarity_threshold)
+        
+        # Filter clusters by paragraph type if specified
+        if para_type != 'all':
+            clusters = [c for c in clusters if c.get('paragraph_type') == para_type]
+        
+        # Filter clusters to only include selected documents
+        filtered_clusters = []
+        for cluster in clusters:
+            # Check if any paragraphs in the cluster are from selected documents
+            paragraphs_in_selected_docs = [p for p in cluster['paragraphs'] 
+                                          if p.document_id in doc_ids]
+            
+            # Only include if at least 2 paragraphs from selected documents
+            if len(paragraphs_in_selected_docs) >= 2:
+                # Create a copy of the cluster with only the selected paragraphs
+                filtered_cluster = cluster.copy()
+                filtered_cluster['paragraphs'] = paragraphs_in_selected_docs
+                filtered_cluster['paragraph_count'] = len(paragraphs_in_selected_docs)
+                filtered_cluster['document_count'] = len(set(p.document_id for p in paragraphs_in_selected_docs))
+                filtered_clusters.append(filtered_cluster)
+        
+        # Generate visualizations
+        document_network = analyzer.generate_document_network_viz(threshold=0.3)
+        paragraph_length_chart = analyzer.generate_paragraph_length_distribution()
+        
+        # Generate heatmap only if 2 or more documents are selected 
+        paragraph_heatmap = ''
+        if len(doc_ids) > 1:
+            paragraph_heatmap = analyzer.generate_paragraph_heatmap(doc_ids)
+        
+        # Generate paragraph type distribution chart
+        import matplotlib.pyplot as plt
+        import base64
+        from io import BytesIO
+        
+        # Get paragraph type counts
+        para_type_counts = stats['paragraphs_by_type']
+        
+        plt.figure(figsize=(8, 6))
+        labels = list(para_type_counts.keys())
+        values = list(para_type_counts.values())
+        colors = ['#dc3545', '#198754', '#fd7e14', '#6610f2', '#20c997']
+        
+        plt.pie(values, labels=labels, autopct='%1.1f%%', colors=colors[:len(labels)], 
+                startangle=90, shadow=False)
+        plt.axis('equal')
+        plt.title('Paragraph Types Distribution')
+        
+        # Save chart to base64
+        buf = BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        plt.close()
+        buf.seek(0)
+        paragraph_type_chart = f'<img src="data:image/png;base64,{base64.b64encode(buf.read()).decode("utf-8")}" class="img-fluid" />'
+        
+        # Calculate metrics
+        metrics = {
+            'total_paragraphs': sum(len(Paragraph.query.filter_by(document_id=doc_id).all()) for doc_id in doc_ids),
+            'duplicate_paragraphs': sum(c['paragraph_count'] for c in filtered_clusters if c['match_type'] == 'exact'),
+            'similar_paragraphs': sum(c['paragraph_count'] for c in filtered_clusters if c['match_type'] == 'similar'),
+            'avg_similarity': sum(c.get('similarity', 0.9) for c in filtered_clusters) / len(filtered_clusters) if filtered_clusters else 0
+        }
+        
+        # Get unique paragraph types for tabs
+        paragraph_types = set(c.get('paragraph_type', 'regular') for c in filtered_clusters)
+        
+        # Get all documents for filter dropdown
+        all_documents = Document.query.all()
+        
+        return render_template('paragraph_analysis.html',
+                          all_documents=all_documents,
+                          selected_doc_ids=doc_ids,
+                          similarity_threshold=similarity_threshold,
+                          para_type=para_type,
+                          metrics=metrics,
+                          paragraph_clusters=filtered_clusters,
+                          filtered_clusters=filtered_clusters,  # For the template
+                          paragraph_types=paragraph_types,
+                          document_network=document_network,
+                          paragraph_type_chart=paragraph_type_chart,
+                          paragraph_length_chart=paragraph_length_chart,
+                          paragraph_heatmap=paragraph_heatmap)
+
+    @app.route('/process-ocr/<int:id>', methods=['POST'])
+    def process_ocr(id):
+        """Process a document with OCR."""
+        document = Document.query.get_or_404(id)
+        
+        try:
+            # Delete existing paragraphs
+            Paragraph.query.filter_by(document_id=id).delete()
+            
+            # Load OCR processor
+            ocr = OCRProcessor()
+            
+            # Get file path
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+            
+            # Process with OCR
+            paragraphs = ocr.process_document(file_path)
+            
+            # Add paragraphs to database
+            from utils.document_processor import compute_paragraph_hash
+            
+            for idx, (text, para_type) in enumerate(paragraphs):
+                if text.strip():  # Skip empty paragraphs
+                    similarity_hash = compute_paragraph_hash(text)
+                    paragraph = Paragraph(
+                        document_id=document.id,
+                        text=text,
+                        paragraph_type=para_type,
+                        index=idx,
+                        similarity_hash=similarity_hash
+                    )
+                    db.session.add(paragraph)
+            
+            db.session.commit()
+            
+            flash('Document processed with OCR successfully', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error processing with OCR: {str(e)}', 'danger')
+        
+        return redirect(url_for('document_view', id=id))
+
+    @app.route('/api/document-clusters')
+    def document_clusters_api():
+        """API endpoint to get document clusters."""
+        clusters = get_document_clustering()
+        
+        # Format for API response
+        result = []
+        for cluster in clusters:
+            doc_list = []
+            for doc in cluster['documents']:
+                doc_list.append({
+                    'id': doc.id,
+                    'name': doc.original_filename,
+                    'type': doc.file_type,
+                    'upload_date': doc.upload_date.strftime('%Y-%m-%d %H:%M')
+                })
+            
+            result.append({
+                'size': cluster['size'],
+                'documents': doc_list,
+                'center_document': {
+                    'id': cluster['center_document'].id,
+                    'name': cluster['center_document'].original_filename
+                }
+            })
+        
+        return jsonify(result)
+
+    @app.route('/api/common-paragraphs')
+    def common_paragraphs_api():
+        """API endpoint to get common paragraphs across documents."""
+        doc_ids = request.args.getlist('doc_ids', type=int)
+        
+        if not doc_ids or len(doc_ids) < 2:
+            return jsonify({'error': 'Please select at least two documents'}), 400
+        
+        common_paragraphs = find_common_paragraphs(doc_ids)
+        
+        # Format for API response
+        result = []
+        for group in common_paragraphs:
+            paragraphs = []
+            for para in group['paragraphs']:
+                doc = Document.query.get(para.document_id)
+                paragraphs.append({
+                    'id': para.id,
+                    'text': para.text,
+                    'document_id': para.document_id,
+                    'document_name': doc.original_filename if doc else 'Unknown',
+                    'paragraph_type': para.paragraph_type,
+                    'index': para.index
+                })
+            
+            result.append({
+                'match_type': group['match_type'],
+                'document_count': group['document_count'],
+                'paragraph_count': group['paragraph_count'],
+                'paragraphs': paragraphs,
+                'sample_text': group['sample_text']
+            })
+        
+        return jsonify(result)
 
     return app
 

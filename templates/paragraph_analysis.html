@@ -1,0 +1,324 @@
+<!-- templates/paragraph_analysis.html -->
+{% extends 'base.html' %}
+
+{% block title %}Paragraph Analysis Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    .analysis-card {
+        transition: transform 0.2s;
+        margin-bottom: 1.5rem;
+    }
+    .analysis-card:hover {
+        transform: translateY(-5px);
+    }
+    .metric-card {
+        text-align: center;
+        padding: 1.5rem;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .metric-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    .chart-container {
+        height: 350px;
+        margin-bottom: 1rem;
+    }
+    .nav-pills .nav-link.active {
+        background-color: #0d6efd;
+    }
+    .paragraph-preview {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        margin-bottom: 1rem;
+    }
+    .similarity-badge {
+        font-size: 1rem;
+        padding: 0.3rem 0.5rem;
+        margin-left: 0.5rem;
+    }
+    .cluster-item {
+        border-left: 3px solid #0d6efd;
+        padding-left: 1rem;
+    }
+    .paragraph-type-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+    .paragraph-type-heading {
+        background-color: #dc3545;
+    }
+    .paragraph-type-regular {
+        background-color: #198754;
+    }
+    .paragraph-type-list-item {
+        background-color: #fd7e14;
+    }
+    .paragraph-type-table-cell {
+        background-color: #6610f2;
+    }
+    .paragraph-type-table-header {
+        background-color: #20c997;
+    }
+    .dashboard-filters {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-network me-2"></i>Paragraph Analysis Dashboard</h2>
+    <div>
+        <a href="{{ url_for('document_list') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Documents
+        </a>
+    </div>
+</div>
+
+<!-- Dashboard Filters -->
+<div class="dashboard-filters">
+    <form action="{{ url_for('paragraph_analysis') }}" method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label for="doc_select" class="form-label">Select Documents</label>
+            <select class="form-select" id="doc_select" name="doc_ids" multiple>
+                {% for doc in all_documents %}
+                    <option value="{{ doc.id }}" {% if doc.id in selected_doc_ids %}selected{% endif %}>
+                        {{ doc.original_filename }}
+                    </option>
+                {% endfor %}
+            </select>
+            <div class="form-text">Hold Ctrl/Cmd to select multiple</div>
+        </div>
+        <div class="col-md-3">
+            <label for="similarity" class="form-label">Similarity Threshold</label>
+            <select class="form-select" id="similarity" name="similarity">
+                <option value="0.7" {% if similarity_threshold == 0.7 %}selected{% endif %}>High (70%+)</option>
+                <option value="0.5" {% if similarity_threshold == 0.5 %}selected{% endif %}>Medium (50%+)</option>
+                <option value="0.3" {% if similarity_threshold == 0.3 %}selected{% endif %}>Low (30%+)</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="paraType" class="form-label">Paragraph Types</label>
+            <select class="form-select" id="paraType" name="para_type">
+                <option value="all" {% if para_type == 'all' %}selected{% endif %}>All Types</option>
+                <option value="heading" {% if para_type == 'heading' %}selected{% endif %}>Headings</option>
+                <option value="regular" {% if para_type == 'regular' %}selected{% endif %}>Regular</option>
+                <option value="list-item" {% if para_type == 'list-item' %}selected{% endif %}>List Items</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-filter me-1"></i>Apply Filters
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card analysis-card">
+            <div class="card-body metric-card">
+                <div class="metric-value">{{ metrics.total_paragraphs }}</div>
+                <div class="metric-label">Total Paragraphs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card analysis-card">
+            <div class="card-body metric-card">
+                <div class="metric-value">{{ metrics.duplicate_paragraphs }}</div>
+                <div class="metric-label">Duplicate Paragraphs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card analysis-card">
+            <div class="card-body metric-card">
+                <div class="metric-value">{{ metrics.similar_paragraphs }}</div>
+                <div class="metric-label">Similar Paragraphs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card analysis-card">
+            <div class="card-body metric-card">
+                <div class="metric-value">{{ "%.1f"|format(metrics.avg_similarity * 100) }}%</div>
+                <div class="metric-label">Avg. Similarity</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts and Visualizations -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card analysis-card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Paragraph Types Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    {{ paragraph_type_chart|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card analysis-card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Paragraph Length Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    {{ paragraph_length_chart|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Relationship Network -->
+<div class="card analysis-card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-project-diagram me-2"></i>Document Relationship Network</h5>
+    </div>
+    <div class="card-body text-center">
+        <div class="network-visualization">
+            {{ document_network|safe }}
+        </div>
+        <p class="text-muted mt-3">
+            <i class="fas fa-info-circle me-1"></i>
+            This network shows similarities between documents. Thicker lines indicate stronger similarities.
+        </p>
+    </div>
+</div>
+
+<!-- Similar Paragraph Clusters -->
+<div class="card analysis-card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0"><i class="fas fa-clone me-2"></i>Similar Paragraph Clusters</h5>
+        <span class="badge bg-light text-dark">{{ paragraph_clusters|length }} clusters found</span>
+    </div>
+    <div class="card-body p-0">
+        {% if paragraph_clusters %}
+            <ul class="nav nav-pills mb-3 p-3" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="pills-all-tab" data-bs-toggle="pill" data-bs-target="#pills-all" type="button" role="tab">
+                        All Clusters
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pills-exact-tab" data-bs-toggle="pill" data-bs-target="#pills-exact" type="button" role="tab">
+                        Exact Matches
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pills-similar-tab" data-bs-toggle="pill" data-bs-target="#pills-similar" type="button" role="tab">
+                        Similar Matches
+                    </button>
+                </li>
+                {% for type in paragraph_types %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pills-{{ type }}-tab" data-bs-toggle="pill" data-bs-target="#pills-{{ type }}" type="button" role="tab">
+                            {{ type|capitalize }}
+                        </button>
+                    </li>
+                {% endfor %}
+            </ul>
+            
+            <div class="tab-content" id="pills-tabContent">
+                <div class="tab-pane fade show active" id="pills-all" role="tabpanel">
+                    {% include 'paragraph_clusters_list.html' with context %}
+                </div>
+                <div class="tab-pane fade" id="pills-exact" role="tabpanel">
+                    {% with filtered_clusters = paragraph_clusters|selectattr('match_type', 'equalto', 'exact')|list %}
+                        {% include 'paragraph_clusters_list.html' with context %}
+                    {% endwith %}
+                </div>
+                <div class="tab-pane fade" id="pills-similar" role="tabpanel">
+                    {% with filtered_clusters = paragraph_clusters|selectattr('match_type', 'equalto', 'similar')|list %}
+                        {% include 'paragraph_clusters_list.html' with context %}
+                    {% endwith %}
+                </div>
+                {% for type in paragraph_types %}
+                    <div class="tab-pane fade" id="pills-{{ type }}" role="tabpanel">
+                        {% with filtered_clusters = paragraph_clusters|selectattr('paragraph_type', 'equalto', type)|list %}
+                            {% include 'paragraph_clusters_list.html' with context %}
+                        {% endwith %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No paragraph clusters found with the current criteria. Try adjusting your filters.
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Paragraph Similarity Heatmap -->
+{% if selected_doc_ids|length > 1 %}
+    <div class="card analysis-card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0"><i class="fas fa-th me-2"></i>Paragraph Similarity Heatmap</h5>
+        </div>
+        <div class="card-body text-center">
+            <div class="heatmap-visualization">
+                {{ paragraph_heatmap|safe }}
+            </div>
+            <p class="text-muted mt-3">
+                <i class="fas fa-info-circle me-1"></i>
+                This heatmap shows similarity between paragraphs across documents. Darker colors indicate higher similarity.
+            </p>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize selectpicker if Bootstrap-select is used
+        if ($.fn.selectpicker) {
+            $('.selectpicker').selectpicker();
+        }
+        
+        // Toggle paragraph details
+        const toggleButtons = document.querySelectorAll('.toggle-paragraphs');
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement.classList.contains('d-none')) {
+                    targetElement.classList.remove('d-none');
+                    this.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Hide Paragraphs';
+                } else {
+                    targetElement.classList.add('d-none');
+                    this.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Show Paragraphs';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
