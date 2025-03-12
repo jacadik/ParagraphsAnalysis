@@ -1,0 +1,67 @@
+<!-- templates/compare_selection.html -->
+{% extends 'base.html' %}
+
+{% block title %}Document Comparison{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exchange-alt me-2"></i>Document Comparison</h2>
+    <a href="{{ url_for('document_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Documents
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-check-double me-2"></i>Select Documents to Compare</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('compare_results') }}" method="post">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="doc1_id" class="form-label">Document 1</label>
+                        <select class="form-select" id="doc1_id" name="doc1_id" required>
+                            <option value="">Select a document...</option>
+                            {% for doc in documents %}
+                                <option value="{{ doc.id }}">{{ doc.original_filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="doc2_id" class="form-label">Document 2</label>
+                        <select class="form-select" id="doc2_id" name="doc2_id" required>
+                            <option value="">Select a document...</option>
+                            {% for doc in documents %}
+                                <option value="{{ doc.id }}">{{ doc.original_filename }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search me-1"></i>Compare Documents
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>About Document Comparison</h5>
+    </div>
+    <div class="card-body">
+        <p>The document comparison tool allows you to:</p>
+        <ul>
+            <li>Compare two documents to find similarities and differences</li>
+            <li>Identify matching paragraphs across documents</li>
+            <li>Get a similarity score between documents</li>
+            <li>Highlight differences in text content</li>
+        </ul>
+        <p>This is particularly useful for template analysis to identify common structures and variable parts.</p>
+    </div>
+</div>
+{% endblock %}

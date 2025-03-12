@@ -1,0 +1,83 @@
+<!-- templates/tag_manager.html -->
+{% extends 'base.html' %}
+
+{% block title %}Tag Manager{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="fas fa-tags me-2"></i>Tag Manager</h2>
+
+<div class="row">
+    <div class="col-md-4 mb-4 mb-md-0">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Tag</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('tag_manager') }}" method="post">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Tag Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="color" class="form-label">Tag Color</label>
+                        <input type="color" class="form-control form-control-color w-100" id="color" name="color" value="#17a2b8">
+                        <div class="form-text">Choose a color for the tag.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-1"></i>Create Tag
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Existing Tags</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if tags %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Color</th>
+                                    <th>Used In</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tag in tags %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge" style="background-color: {{ tag.color }}">{{ tag.name }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="color-preview" style="background-color: {{ tag.color }}"></div>
+                                            <code class="ms-2">{{ tag.color }}</code>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ tag.documents|length }} documents, 
+                                                {{ tag.paragraphs|length }} paragraphs
+                                            </small>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="card-body">
+                        <p class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            No tags created yet. Create your first tag using the form.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

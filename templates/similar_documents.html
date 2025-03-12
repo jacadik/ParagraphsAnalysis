@@ -1,0 +1,92 @@
+<!-- templates/similar_documents.html -->
+{% extends 'base.html' %}
+
+{% block title %}Similar Documents{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-copy me-2"></i>Similar Documents</h2>
+    <a href="{{ url_for('document_view', id=document.id) }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Document
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-search me-2"></i>Looking for documents similar to
+        </h5>
+    </div>
+    <div class="card-body">
+        <h5>
+            {% if document.file_type == 'pdf' %}
+                <i class="fas fa-file-pdf text-danger me-1"></i>
+            {% else %}
+                <i class="fas fa-file-word text-primary me-1"></i>
+            {% endif %}
+            {{ document.original_filename }}
+        </h5>
+        <p class="text-muted">Uploaded on {{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p>Total paragraphs: {{ document.paragraphs|length }}</p>
+    </div>
+</div>
+
+{% if similar_docs %}
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-check-circle me-2"></i>Similar Documents Found
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for item in similar_docs %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">
+                                    {% if item.document.file_type == 'pdf' %}
+                                        <i class="fas fa-file-pdf text-danger me-1"></i>
+                                    {% else %}
+                                        <i class="fas fa-file-word text-primary me-1"></i>
+                                    {% endif %}
+                                    {{ item.document.original_filename }}
+                                </h5>
+                                <p class="text-muted small mb-0">
+                                    Uploaded on {{ item.document.upload_date.strftime('%Y-%m-%d %H:%M') }}
+                                </p>
+                            </div>
+                            
+                            <div class="text-center">
+                                <div class="similarity-score">
+                                    <h4 class="mb-0">{{ "%.0f"|format(item.similarity * 100) }}%</h4>
+                                    <p class="text-muted small mb-0">Similarity</p>
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-info">
+                                        {{ item.matched_paragraphs }} / {{ item.total_paragraphs }} paragraphs match
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="{{ url_for('document_view', id=item.document.id) }}" class="btn btn-sm btn-outline-primary me-2">
+                                <i class="fas fa-eye me-1"></i>View Document
+                            </a>
+                            <a href="{{ url_for('compare_results') }}?doc1_id={{ document.id }}&doc2_id={{ item.document.id }}" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-exchange-alt me-1"></i>Compare Documents
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        No similar documents found.
+    </div>
+{% endif %}
+{% endblock %}

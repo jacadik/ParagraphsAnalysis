@@ -1,0 +1,32 @@
+document_analyzer/
+│
+├── app.py                        # Main Flask application with enhanced routes
+├── config.py                     # Configuration settings
+├── models.py                     # Enhanced database models with paragraph types
+├── requirements.txt              # Dependencies list
+│
+├── static/                       # Static files
+│   ├── css/
+│   │   └── main.css              # Enhanced CSS with styles for comparison
+│   ├── js/
+│   │   └── main.js               # JavaScript functionality
+│   └── exports/                  # Folder for Excel exports
+│
+├── templates/                    # HTML templates
+│   ├── base.html                 # Base template with navigation for comparison
+│   ├── index.html                # Home page
+│   ├── document_list.html        # List of uploaded documents
+│   ├── document_view.html        # Enhanced document view with paragraph types
+│   ├── tag_manager.html          # Manage tags
+│   ├── compare_selection.html    # Select documents to compare
+│   ├── compare_results.html      # Show comparison results
+│   ├── compare_paragraphs.html   # Detailed paragraph comparison
+│   └── similar_documents.html    # Show similar documents
+│
+├── uploads/                      # Document storage
+│
+└── utils/                        # Utility functions
+    ├── __init__.py
+    ├── document_processor.py     # Enhanced PDF/DOCX processing with paragraph detection
+    ├── comparison.py             # Document comparison functionality
+    └── export.py                 # Excel export with paragraph type information

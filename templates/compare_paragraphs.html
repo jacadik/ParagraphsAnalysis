@@ -1,0 +1,125 @@
+<!-- templates/compare_paragraphs.html -->
+{% extends 'base.html' %}
+
+{% block title %}Paragraph Comparison{% endblock %}
+
+{% block head %}
+<style>
+    table.diff {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+    table.diff td {
+        padding: 0.25rem 0.5rem;
+        vertical-align: top;
+        white-space: pre-wrap;
+    }
+    table.diff td.diff_header {
+        text-align: right;
+        width: 40px;
+    }
+    .diff_add {
+        background-color: #d4edda;
+    }
+    .diff_chg {
+        background-color: #fff3cd;
+    }
+    .diff_sub {
+        background-color: #f8d7da;
+    }
+    .paragraph-context {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+    }
+    .paragraph-metadata {
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-search me-2"></i>Paragraph Comparison</h2>
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Back to Results
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Document 1 Paragraph
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="paragraph-metadata">
+                    <strong>Document:</strong> {{ paragraph1.document.original_filename }}<br>
+                    <strong>Paragraph:</strong> {{ paragraph1.index + 1 }}<br>
+                    <strong>Type:</strong> {{ paragraph1.paragraph_type }}
+                </div>
+                <div class="paragraph-context">
+                    {{ paragraph1.text }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>Document 2 Paragraph
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="paragraph-metadata">
+                    <strong>Document:</strong> {{ paragraph2.document.original_filename }}<br>
+                    <strong>Paragraph:</strong> {{ paragraph2.index + 1 }}<br>
+                    <strong>Type:</strong> {{ paragraph2.paragraph_type }}
+                </div>
+                <div class="paragraph-context">
+                    {{ paragraph2.text }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-exchange-alt me-2"></i>Differences Highlighted
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="diff-display p-3">
+            <div class="card mb-3">
+                <div class="card-body p-2">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <span class="badge bg-success me-2">Added</span> Content in Document 2 only
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-warning text-dark me-2">Changed</span> Modified content
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-danger me-2">Removed</span> Content in Document 1 only
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="diff-table">
+                {{ diff_html|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

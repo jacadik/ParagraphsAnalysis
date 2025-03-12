@@ -1,0 +1,197 @@
+<!-- templates/compare_results.html -->
+{% extends 'base.html' %}
+
+{% block title %}Comparison Results{% endblock %}
+
+{% block head %}
+<style>
+    .similarity-badge {
+        width: 70px;
+        text-align: center;
+    }
+    .similarity-high {
+        background-color: #28a745;
+    }
+    .similarity-medium {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .similarity-low {
+        background-color: #dc3545;
+    }
+    .diff-table {
+        font-family: monospace;
+        font-size: 0.9rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .paragraph-type-badge {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.4rem;
+        margin-left: 0.5rem;
+    }
+    .match-highlight {
+        background-color: rgba(40, 167, 69, 0.1);
+        border-left: 3px solid #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exchange-alt me-2"></i>Comparison Results</h2>
+    <div>
+        <a href="{{ url_for('compare_selection') }}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-sync-alt me-1"></i>New Comparison
+        </a>
+        <a href="{{ url_for('document_list') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Back to Documents
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Comparison Summary
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Document 1</h5>
+                <p>
+                    {% if data.doc1.file_type == 'pdf' %}
+                        <i class="fas fa-file-pdf text-danger me-1"></i>
+                    {% else %}
+                        <i class="fas fa-file-word text-primary me-1"></i>
+                    {% endif %}
+                    <strong>{{ data.doc1.original_filename }}</strong>
+                </p>
+                <p>Total paragraphs: {{ data.summary.doc1_paragraphs }}</p>
+            </div>
+            <div class="col-md-6">
+                <h5>Document 2</h5>
+                <p>
+                    {% if data.doc2.file_type == 'pdf' %}
+                        <i class="fas fa-file-pdf text-danger me-1"></i>
+                    {% else %}
+                        <i class="fas fa-file-word text-primary me-1"></i>
+                    {% endif %}
+                    <strong>{{ data.doc2.original_filename }}</strong>
+                </p>
+                <p>Total paragraphs: {{ data.summary.doc2_paragraphs }}</p>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-body text-center py-2">
+                        <h3 class="mb-0">{{ "%.1f"|format(data.summary.match_percentage) }}%</h3>
+                        <p class="text-muted mb-0">Overall similarity</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-between">
+                    <div class="text-center">
+                        <h4>{{ data.summary.exact_matches }}</h4>
+                        <p class="text-muted mb-0">Exact matches</p>
+                    </div>
+                    <div class="text-center">
+                        <h4>{{ data.summary.similar_matches }}</h4>
+                        <p class="text-muted mb-0">Similar matches</p>
+                    </div>
+                    <div class="text-center">
+                        <h4>{{ data.summary.doc1_paragraphs - data.summary.exact_matches - data.summary.similar_matches }}</h4>
+                        <p class="text-muted mb-0">Unique paragraphs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-paragraph me-2"></i>Matched Paragraphs
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for match in data.matches %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <span class="badge bg-secondary">Paragraph {{ match.paragraph.index + 1 }}</span>
+                            <span class="badge bg-secondary paragraph-type-badge">{{ match.paragraph.paragraph_type }}</span>
+                        </div>
+                        <span class="badge bg-info">{{ match.matches|length }} matching paragraph(s)</span>
+                    </div>
+                    
+                    <div class="paragraph-text mb-3">{{ match.paragraph.text }}</div>
+                    
+                    <div class="matches mt-3">
+                        <h6 class="text-muted">Matches in Document 2:</h6>
+                        
+                        {% for m in match.matches %}
+                            <div class="match-item match-highlight p-2 mb-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="badge bg-secondary">Paragraph {{ m.paragraph.index + 1 }}</span>
+                                        <span class="badge bg-secondary paragraph-type-badge">{{ m.paragraph.paragraph_type }}</span>
+                                    </div>
+                                    
+                                    {% if m.similarity >= 0.9 %}
+                                        <span class="badge similarity-high similarity-badge">{{ "%.0f"|format(m.similarity * 100) }}%</span>
+                                    {% elif m.similarity >= 0.7 %}
+                                        <span class="badge similarity-medium similarity-badge">{{ "%.0f"|format(m.similarity * 100) }}%</span>
+                                    {% else %}
+                                        <span class="badge similarity-low similarity-badge">{{ "%.0f"|format(m.similarity * 100) }}%</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="match-text mb-2">{{ m.paragraph.text }}</div>
+                                
+                                <div class="text-end">
+                                    <a href="{{ url_for('compare_paragraphs', p1_id=match.paragraph.id, p2_id=m.paragraph.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-search me-1"></i>View Detailed Comparison
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if data.unmapped_paragraphs %}
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>Unmatched Paragraphs in Document 1
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for para in data.unmapped_paragraphs %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-secondary">Paragraph {{ para.index + 1 }}</span>
+                        <span class="badge bg-secondary paragraph-type-badge">{{ para.paragraph_type }}</span>
+                    </div>
+                    
+                    <div class="paragraph-text">{{ para.text }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
