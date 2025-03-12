@@ -3,6 +3,47 @@
 
 {% block title %}Document: {{ document.original_filename }}{% endblock %}
 
+{% block head %}
+<style>
+    .paragraph-heading {
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+    }
+    .paragraph-list-item {
+        padding-left: 20px;
+        position: relative;
+    }
+    .paragraph-list-item::before {
+        content: "•";
+        position: absolute;
+        left: 5px;
+    }
+    .paragraph-table-cell {
+        background-color: #f8f9fa;
+        padding: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    .paragraph-table-header {
+        background-color: #e9ecef;
+        font-weight: bold;
+        padding: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    .table-container {
+        overflow-x: auto;
+        margin-bottom: 1rem;
+    }
+    .color-preview {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>
@@ -96,13 +137,85 @@
 </div>
 
 <div class="card mb-4">
-    <div class="card-header bg-primary text-white">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0"><i class="fas fa-align-left me-2"></i>Extracted Paragraphs</h5>
+        <div>
+            <button class="btn btn-sm btn-light" id="toggleAllParagraphs">
+                <i class="fas fa-eye"></i> Show/Hide All
+            </button>
+        </div>
     </div>
     <div class="card-body p-0">
-        <div class="list-group list-group-flush">
+        <!-- Paragraph Type Summary -->
+        <div class="p-3 bg-light border-bottom">
+            <div class="row">
+                <div class="col-md-12">
+                    <h6>Paragraph Types:</h6>
+                    <div class="d-flex flex-wrap">
+                        {% set paragraph_type_counts = {} %}
+                        {% for para in document.paragraphs %}
+                            {% if para.paragraph_type in paragraph_type_counts %}
+                                {% set _ = paragraph_type_counts.update({para.paragraph_type: paragraph_type_counts[para.paragraph_type] + 1}) %}
+                            {% else %}
+                                {% set _ = paragraph_type_counts.update({para.paragraph_type: 1}) %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% for type, count in paragraph_type_counts.items() %}
+                            {% if type == 'heading' %}
+                                <span class="badge bg-primary me-2 mb-1">Headings: {{ count }}</span>
+                            {% elif type == 'list-item' %}
+                                <span class="badge bg-info me-2 mb-1">List Items: {{ count }}</span>
+                            {% elif type == 'table-cell' %}
+                                <span class="badge bg-warning text-dark me-2 mb-1">Table Cells: {{ count }}</span>
+                            {% elif type == 'table-header' %}
+                                <span class="badge bg-secondary me-2 mb-1">Table Headers: {{ count }}</span>
+                            {% else %}
+                                <span class="badge bg-success me-2 mb-1">Regular: {{ count }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="p-3 border-bottom">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" id="paragraphFilter" class="form-control" placeholder="Filter paragraphs...">
+                        <button class="btn btn-outline-secondary" type="button" id="clearFilter">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-end">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterHeading" value="heading" checked>
+                            <label class="form-check-label" for="filterHeading">Headings</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterList" value="list-item" checked>
+                            <label class="form-check-label" for="filterList">Lists</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterTable" value="table-cell" checked>
+                            <label class="form-check-label" for="filterTable">Tables</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="filterRegular" value="regular" checked>
+                            <label class="form-check-label" for="filterRegular">Regular</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="list-group list-group-flush" id="paragraphContainer">
             {% for para in document.paragraphs %}
-            <div class="list-group-item py-3">
+            <div class="list-group-item py-3 paragraph-item" data-type="{{ para.paragraph_type }}">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div>
                         <span class="badge bg-secondary">Paragraph {{ para.index + 1 }}</span>
@@ -112,8 +225,10 @@
                             <span class="badge bg-info ms-2">List Item</span>
                         {% elif para.paragraph_type == 'table-cell' %}
                             <span class="badge bg-warning text-dark ms-2">Table Cell</span>
+                        {% elif para.paragraph_type == 'table-header' %}
+                            <span class="badge bg-secondary ms-2">Table Header</span>
                         {% else %}
-                            <span class="badge bg-secondary ms-2">Regular</span>
+                            <span class="badge bg-success ms-2">Regular</span>
                         {% endif %}
                     </div>
                     <div>
@@ -123,7 +238,7 @@
                     </div>
                 </div>
                 
-                <div class="paragraph-text mb-3" style="{% if para.paragraph_type == 'heading' %}font-weight: bold; font-size: 1.1rem;{% elif para.paragraph_type == 'list-item' %}padding-left: 20px;{% endif %}">
+                <div class="paragraph-text mb-3 {% if para.paragraph_type == 'heading' %}paragraph-heading{% elif para.paragraph_type == 'list-item' %}paragraph-list-item{% elif para.paragraph_type == 'table-cell' %}paragraph-table-cell{% elif para.paragraph_type == 'table-header' %}paragraph-table-header{% endif %}">
                     {{ para.text }}
                 </div>
                 
@@ -145,4 +260,64 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filter functionality
+        const paragraphFilter = document.getElementById('paragraphFilter');
+        const clearFilterBtn = document.getElementById('clearFilter');
+        const paragraphItems = document.querySelectorAll('.paragraph-item');
+        const typeFilters = document.querySelectorAll('input[type="checkbox"][id^="filter"]');
+        const toggleAllBtn = document.getElementById('toggleAllParagraphs');
+        
+        // Function to apply filters
+        function applyFilters() {
+            const searchText = paragraphFilter.value.toLowerCase();
+            const enabledTypes = Array.from(typeFilters)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+            
+            paragraphItems.forEach(item => {
+                const paragraphText = item.querySelector('.paragraph-text').textContent.toLowerCase();
+                const paragraphType = item.dataset.type;
+                
+                const matchesSearch = searchText === '' || paragraphText.includes(searchText);
+                const matchesType = enabledTypes.includes(paragraphType);
+                
+                item.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
+            });
+        }
+        
+        // Search filter
+        if (paragraphFilter) {
+            paragraphFilter.addEventListener('input', applyFilters);
+        }
+        
+        // Clear filter
+        if (clearFilterBtn) {
+            clearFilterBtn.addEventListener('click', function() {
+                paragraphFilter.value = '';
+                applyFilters();
+            });
+        }
+        
+        // Type filters
+        typeFilters.forEach(filter => {
+            filter.addEventListener('change', applyFilters);
+        });
+        
+        // Toggle all paragraphs
+        let allVisible = true;
+        if (toggleAllBtn) {
+            toggleAllBtn.addEventListener('click', function() {
+                allVisible = !allVisible;
+                paragraphItems.forEach(item => {
+                    item.style.display = allVisible ? 'block' : 'none';
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

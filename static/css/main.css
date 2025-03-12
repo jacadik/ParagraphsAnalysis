@@ -1,0 +1,156 @@
+/* static/css/main.css */
+
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+/* Card Customizations */
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+}
+
+/* Feature Icons */
+.feature-icon {
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Navigation */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-link {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+/* Document List */
+.table th {
+    font-weight: 600;
+}
+
+/* Color Preview */
+.color-preview {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+/* Similarity Score */
+.similarity-score {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    text-align: center;
+}
+
+/* Document View - Paragraph Styling */
+.paragraph-heading {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-top: 0.5rem;
+    color: #212529;
+}
+
+.paragraph-list-item {
+    padding-left: 20px;
+    position: relative;
+}
+
+.paragraph-list-item::before {
+    content: "•";
+    position: absolute;
+    left: 5px;
+}
+
+.paragraph-table-cell {
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.paragraph-table-header {
+    background-color: #e9ecef;
+    font-weight: bold;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+/* Table styling for actual table layout */
+.document-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+}
+
+.document-table th,
+.document-table td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+}
+
+.document-table th {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+/* Comparison styles */
+.diff-table {
+    font-family: monospace;
+    font-size: 0.9rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.match-highlight {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-left: 3px solid #28a745;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+    .card-title {
+        font-size: 1.1rem;
+    }
+    
+    .btn-group-sm > .btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* Animated highlight for newly detected paragraphs */
+@keyframes highlight-pulse {
+    0% { background-color: rgba(255, 193, 7, 0.1); }
+    50% { background-color: rgba(255, 193, 7, 0.3); }
+    100% { background-color: rgba(255, 193, 7, 0.1); }
+}
+
+.highlight-new {
+    animation: highlight-pulse 2s ease-in-out 1;
+}
