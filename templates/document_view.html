@@ -285,4 +285,66 @@
                 </form>
             </div>
         </div>
-    
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Paragraph filtering
+        const paragraphFilter = document.getElementById('paragraphFilter');
+        const clearFilterButton = document.getElementById('clearFilter');
+        const paragraphs = document.querySelectorAll('.paragraph-item');
+        const typeFilters = document.querySelectorAll('input[type="checkbox"][id^="filter"]');
+        
+        // Filter function for paragraphs
+        function filterParagraphs() {
+            const searchText = paragraphFilter.value.toLowerCase();
+            const enabledTypes = Array.from(typeFilters)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            paragraphs.forEach(para => {
+                const text = para.querySelector('.paragraph-text').textContent.toLowerCase();
+                const type = para.getAttribute('data-type');
+                
+                const matchesSearch = text.includes(searchText) || searchText === '';
+                const matchesType = enabledTypes.includes(type);
+                
+                para.style.display = (matchesSearch && matchesType) ? '' : 'none';
+            });
+        }
+        
+        // Event listeners
+        if (paragraphFilter) {
+            paragraphFilter.addEventListener('input', filterParagraphs);
+        }
+        
+        if (clearFilterButton) {
+            clearFilterButton.addEventListener('click', function() {
+                paragraphFilter.value = '';
+                filterParagraphs();
+            });
+        }
+        
+        typeFilters.forEach(filter => {
+            filter.addEventListener('change', filterParagraphs);
+        });
+        
+        // Toggle all paragraphs
+        const toggleButton = document.getElementById('toggleAllParagraphs');
+        let paragraphsVisible = true;
+        
+        if (toggleButton) {
+            toggleButton.addEventListener('click', function() {
+                paragraphsVisible = !paragraphsVisible;
+                
+                document.querySelectorAll('.paragraph-text').forEach(p => {
+                    p.style.display = paragraphsVisible ? '' : 'none';
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
