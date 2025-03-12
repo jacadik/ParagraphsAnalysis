@@ -6,65 +6,101 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-file-archive me-2"></i>Document List</h2>
-    <a href="{{ url_for('index') }}" class="btn btn-primary">
-        <i class="fas fa-upload me-1"></i> Upload New
-    </a>
+    <div>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-upload me-1"></i> Upload New
+        </a>
+    </div>
 </div>
 
 {% if documents %}
-    <div class="card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">ID</th>
-                            <th scope="col">File Name</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">Upload Date</th>
-                            <th scope="col">Paragraphs</th>
-                            <th scope="col">Tags</th>
-                            <th scope="col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for doc in documents %}
-                        <tr>
-                            <td>{{ doc.id }}</td>
-                            <td>
-                                {% if doc.file_type == 'pdf' %}
-                                    <i class="fas fa-file-pdf text-danger me-1"></i>
-                                {% else %}
-                                    <i class="fas fa-file-word text-primary me-1"></i>
-                                {% endif %}
-                                {{ doc.original_filename }}
-                            </td>
-                            <td><span class="badge bg-secondary">{{ doc.file_type }}</span></td>
-                            <td>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>{{ doc.paragraphs|length }}</td>
-                            <td>
-                                {% for tag in doc.tags %}
-                                    <span class="badge mb-1" style="background-color: {{ tag.color }}">
-                                        {{ tag.name }}
-                                    </span>
+    <div class="mb-3">
+        <form id="bulkActionForm" action="{{ url_for('delete_selected_documents') }}" method="post">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="fas fa-tasks me-2"></i>Bulk Actions</h5>
+                        <div>
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="Are you sure you want to delete the selected documents? This cannot be undone.">
+                                <i class="fas fa-trash-alt me-1"></i> Delete Selected
+                            </button>
+                            <a href="#" class="btn btn-sm btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
+                                <i class="fas fa-trash-alt me-1"></i> Delete All
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" style="width: 50px;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAll">
+                                        </div>
+                                    </th>
+                                    <th scope="col">ID</th>
+                                    <th scope="col">File Name</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Upload Date</th>
+                                    <th scope="col">Paragraphs</th>
+                                    <th scope="col">Tags</th>
+                                    <th scope="col">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in documents %}
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input document-checkbox" type="checkbox" name="selected_docs" value="{{ doc.id }}">
+                                        </div>
+                                    </td>
+                                    <td>{{ doc.id }}</td>
+                                    <td>
+                                        {% if doc.file_type == 'pdf' %}
+                                            <i class="fas fa-file-pdf text-danger me-1"></i>
+                                        {% else %}
+                                            <i class="fas fa-file-word text-primary me-1"></i>
+                                        {% endif %}
+                                        {{ doc.original_filename }}
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ doc.file_type }}</span></td>
+                                    <td>{{ doc.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>{{ doc.paragraphs|length }}</td>
+                                    <td>
+                                        {% for tag in doc.tags %}
+                                            <span class="badge mb-1" style="background-color: {{ tag.color }}">
+                                                {{ tag.name }}
+                                            </span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('document_view', id=doc.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                            <a href="{{ url_for('document_download', id=doc.id) }}" class="btn btn-outline-secondary">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteDocumentModal" 
+                                                    data-document-id="{{ doc.id }}"
+                                                    data-document-name="{{ doc.original_filename }}">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('document_view', id=doc.id) }}" class="btn btn-outline-primary">
-                                        <i class="fas fa-eye"></i> View
-                                    </a>
-                                    <a href="{{ url_for('document_download', id=doc.id) }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-download"></i> Download
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
 {% else %}
     <div class="alert alert-info">
@@ -72,4 +108,94 @@
         No documents have been uploaded yet. <a href="{{ url_for('index') }}">Upload some now</a>.
     </div>
 {% endif %}
+
+<!-- Delete Document Modal -->
+<div class="modal fade" id="deleteDocumentModal" tabindex="-1" aria-labelledby="deleteDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteDocumentModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="documentNamePlaceholder"></strong>?</p>
+                <p class="text-danger">This action cannot be undone. All associated paragraphs will also be deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteDocumentForm" action="" method="post">
+                    <button type="submit" class="btn btn-danger">Delete Document</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Documents Modal -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1" aria-labelledby="deleteAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteAllModalLabel">Delete All Documents</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger fw-bold">Warning: This action will delete ALL documents and cannot be undone!</p>
+                <p>Are you absolutely sure you want to delete all {{ documents|length }} documents?</p>
+                <p>All associated paragraphs and document tags will also be deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_all_documents') }}" method="post">
+                    <button type="submit" class="btn btn-danger">Delete All Documents</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select/deselect all documents
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const documentCheckboxes = document.querySelectorAll('.document-checkbox');
+        
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                documentCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+            });
+        }
+        
+        // Update select all checkbox when individual checkboxes change
+        documentCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // If all individual checkboxes are checked, check the selectAll checkbox
+                const allChecked = Array.from(documentCheckboxes).every(cb => cb.checked);
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = allChecked;
+                }
+            });
+        });
+        
+        // Setup delete document modal
+        const deleteDocumentModal = document.getElementById('deleteDocumentModal');
+        if (deleteDocumentModal) {
+            deleteDocumentModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const documentId = button.getAttribute('data-document-id');
+                const documentName = button.getAttribute('data-document-name');
+                
+                const documentNamePlaceholder = document.getElementById('documentNamePlaceholder');
+                const deleteDocumentForm = document.getElementById('deleteDocumentForm');
+                
+                documentNamePlaceholder.textContent = documentName;
+                deleteDocumentForm.action = `/document/${documentId}/delete`;
+            });
+        }
+    });
+</script>
 {% endblock %}

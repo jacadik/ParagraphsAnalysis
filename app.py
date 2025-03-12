@@ -1,6 +1,6 @@
 # app.py
 import os
-from flask import Flask, request, render_template, redirect, url_for, flash, send_file
+from flask import Flask, request, render_template, redirect, url_for, flash, send_file, jsonify
 from werkzeug.utils import secure_filename
 from models import db, Document, Paragraph, Tag
 from utils.document_processor import save_uploaded_file, process_document
@@ -84,6 +84,84 @@ def create_app():
         document = Document.query.get_or_404(id)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
         return send_file(file_path, as_attachment=True, download_name=document.original_filename)
+
+    @app.route('/document/<int:id>/delete', methods=['POST'])
+    def delete_document(id):
+        """Delete a document and its associated paragraphs."""
+        document = Document.query.get_or_404(id)
+        
+        try:
+            # Delete the physical file
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # Delete from database (paragraphs will be deleted via cascade)
+            db.session.delete(document)
+            db.session.commit()
+            
+            flash(f'Document "{document.original_filename}" deleted successfully', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error deleting document: {str(e)}', 'danger')
+        
+        return redirect(url_for('document_list'))
+
+    @app.route('/documents/delete-all', methods=['POST'])
+    def delete_all_documents():
+        """Delete all documents and associated paragraphs."""
+        try:
+            # Get all documents
+            documents = Document.query.all()
+            
+            # Delete physical files
+            for document in documents:
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            
+            # Use SQLAlchemy to delete all documents (cascade will handle paragraphs)
+            Document.query.delete()
+            db.session.commit()
+            
+            flash('All documents deleted successfully', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error deleting documents: {str(e)}', 'danger')
+        
+        return redirect(url_for('document_list'))
+
+    @app.route('/documents/delete-selected', methods=['POST'])
+    def delete_selected_documents():
+        """Delete selected documents."""
+        selected_ids = request.form.getlist('selected_docs')
+        
+        if not selected_ids:
+            flash('No documents selected', 'warning')
+            return redirect(url_for('document_list'))
+        
+        try:
+            # Convert string IDs to integers
+            doc_ids = [int(id) for id in selected_ids]
+            
+            # Get the documents
+            documents = Document.query.filter(Document.id.in_(doc_ids)).all()
+            
+            # Delete physical files
+            for document in documents:
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                db.session.delete(document)
+            
+            db.session.commit()
+            
+            flash(f'Successfully deleted {len(documents)} documents', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error deleting documents: {str(e)}', 'danger')
+        
+        return redirect(url_for('document_list'))
 
     @app.route('/document/<int:id>/tag', methods=['POST'])
     def tag_document(id):

@@ -61,78 +61,14 @@
         <a href="{{ url_for('similar_documents', id=document.id) }}" class="btn btn-outline-success me-2">
             <i class="fas fa-copy me-1"></i>Find Similar
         </a>
+        <button type="button" class="btn btn-outline-danger me-2" 
+                data-bs-toggle="modal" 
+                data-bs-target="#deleteDocumentModal">
+            <i class="fas fa-trash-alt me-1"></i>Delete
+        </button>
         <a href="{{ url_for('document_list') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-1"></i>Back to List
         </a>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Document Information</h5>
-            </div>
-            <div class="card-body">
-                <table class="table table-bordered mb-0">
-                    <tr>
-                        <th style="width: 35%">ID:</th>
-                        <td>{{ document.id }}</td>
-                    </tr>
-                    <tr>
-                        <th>File Name:</th>
-                        <td>{{ document.original_filename }}</td>
-                    </tr>
-                    <tr>
-                        <th>Type:</th>
-                        <td>
-                            <span class="badge bg-secondary">{{ document.file_type.upper() }}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Upload Date:</th>
-                        <td>{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                    </tr>
-                    <tr>
-                        <th>Paragraphs:</th>
-                        <td>{{ document.paragraphs|length }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header bg-info text-white">
-                <h5 class="card-title mb-0"><i class="fas fa-tags me-2"></i>Document Tags</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    {% for tag in document.tags %}
-                        <span class="badge mb-1 me-1" style="background-color: {{ tag.color }}">
-                            {{ tag.name }}
-                        </span>
-                    {% else %}
-                        <p class="text-muted">No tags applied yet.</p>
-                    {% endfor %}
-                </div>
-                
-                <form action="{{ url_for('tag_document', id=document.id) }}" method="post">
-                    <div class="input-group">
-                        <select class="form-select" name="tag_id">
-                            <option value="" selected>Choose a tag...</option>
-                            {% for tag in all_tags %}
-                                <option value="{{ tag.id }}">{{ tag.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-plus me-1"></i>Add Tag
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -260,64 +196,93 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Filter functionality
-        const paragraphFilter = document.getElementById('paragraphFilter');
-        const clearFilterBtn = document.getElementById('clearFilter');
-        const paragraphItems = document.querySelectorAll('.paragraph-item');
-        const typeFilters = document.querySelectorAll('input[type="checkbox"][id^="filter"]');
-        const toggleAllBtn = document.getElementById('toggleAllParagraphs');
-        
-        // Function to apply filters
-        function applyFilters() {
-            const searchText = paragraphFilter.value.toLowerCase();
-            const enabledTypes = Array.from(typeFilters)
-                .filter(checkbox => checkbox.checked)
-                .map(checkbox => checkbox.value);
-            
-            paragraphItems.forEach(item => {
-                const paragraphText = item.querySelector('.paragraph-text').textContent.toLowerCase();
-                const paragraphType = item.dataset.type;
+<!-- Delete Document Modal -->
+<div class="modal fade" id="deleteDocumentModal" tabindex="-1" aria-labelledby="deleteDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteDocumentModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ document.original_filename }}</strong>?</p>
+                <p class="text-danger">This action cannot be undone. All associated paragraphs will also be deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_document', id=document.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Delete Document</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Document Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered mb-0">
+                    <tr>
+                        <th style="width: 35%">ID:</th>
+                        <td>{{ document.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>File Name:</th>
+                        <td>{{ document.original_filename }}</td>
+                    </tr>
+                    <tr>
+                        <th>Type:</th>
+                        <td>
+                            <span class="badge bg-secondary">{{ document.file_type.upper() }}</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Upload Date:</th>
+                        <td>{{ document.upload_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Paragraphs:</th>
+                        <td>{{ document.paragraphs|length }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-tags me-2"></i>Document Tags</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    {% for tag in document.tags %}
+                        <span class="badge mb-1 me-1" style="background-color: {{ tag.color }}">
+                            {{ tag.name }}
+                        </span>
+                    {% else %}
+                        <p class="text-muted">No tags applied yet.</p>
+                    {% endfor %}
+                </div>
                 
-                const matchesSearch = searchText === '' || paragraphText.includes(searchText);
-                const matchesType = enabledTypes.includes(paragraphType);
-                
-                item.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
-            });
-        }
-        
-        // Search filter
-        if (paragraphFilter) {
-            paragraphFilter.addEventListener('input', applyFilters);
-        }
-        
-        // Clear filter
-        if (clearFilterBtn) {
-            clearFilterBtn.addEventListener('click', function() {
-                paragraphFilter.value = '';
-                applyFilters();
-            });
-        }
-        
-        // Type filters
-        typeFilters.forEach(filter => {
-            filter.addEventListener('change', applyFilters);
-        });
-        
-        // Toggle all paragraphs
-        let allVisible = true;
-        if (toggleAllBtn) {
-            toggleAllBtn.addEventListener('click', function() {
-                allVisible = !allVisible;
-                paragraphItems.forEach(item => {
-                    item.style.display = allVisible ? 'block' : 'none';
-                });
-            });
-        }
-    });
-</script>
-{% endblock %}
+                <form action="{{ url_for('tag_document', id=document.id) }}" method="post">
+                    <div class="input-group">
+                        <select class="form-select" name="tag_id">
+                            <option value="" selected>Choose a tag...</option>
+                            {% for tag in all_tags %}
+                                <option value="{{ tag.id }}">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-plus me-1"></i>Add Tag
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    
