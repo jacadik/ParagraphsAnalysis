@@ -6,10 +6,14 @@
                 <div>
                     <span class="badge bg-primary">{{ cluster.document_count }} documents</span>
                     <span class="badge bg-secondary ms-2">{{ cluster.paragraph_count }} paragraphs</span>
-                    {% if cluster.match_type == 'exact' %}
-                        <span class="badge bg-success ms-2">Exact Match</span>
+                    {% if cluster.match_type is defined %}
+                        {% if cluster.match_type == 'exact' %}
+                            <span class="badge bg-success ms-2">Exact Match</span>
+                        {% else %}
+                            <span class="badge bg-info ms-2">Similar Match</span>
+                        {% endif %}
                     {% else %}
-                        <span class="badge bg-info ms-2">Similar Match</span>
+                        <span class="badge bg-secondary ms-2">Match</span>
                     {% endif %}
                     
                     {% if cluster.paragraph_type == 'heading' %}
@@ -84,3 +88,6 @@
                     </table>
                 </div>
             </div>
+        </div>
+    {% endfor %}
+</div>

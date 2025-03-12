@@ -424,12 +424,22 @@ class DocumentAnalyzer:
                 # Make sure cluster includes paragraphs from different documents
                 doc_ids = set(p.document_id for p in paragraphs)
                 if len(doc_ids) > 1:
+                    # Check if any paragraphs are exact matches by hash
+                    has_exact_matches = False
+                    if len(paragraphs) >= 2:
+                        hash_values = [p.similarity_hash for p in paragraphs if p.similarity_hash]
+                        hash_counts = {}
+                        for hash_val in hash_values:
+                            hash_counts[hash_val] = hash_counts.get(hash_val, 0) + 1
+                        has_exact_matches = any(count >= 2 for count in hash_counts.values())
+                    
                     all_clusters.append({
                         'paragraphs': paragraphs,
                         'count': len(paragraphs),
                         'document_count': len(doc_ids),
                         'paragraph_type': para_type,
-                        'sample_text': paragraphs[0].text[:100] + ('...' if len(paragraphs[0].text) > 100 else '')
+                        'sample_text': paragraphs[0].text[:100] + ('...' if len(paragraphs[0].text) > 100 else ''),
+                        'match_type': 'exact' if has_exact_matches else 'similar'  # Add match_type
                     })
         
         # Sort clusters by size (number of paragraphs)

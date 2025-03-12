@@ -298,6 +298,12 @@ def create_app():
         # Get paragraph clusters
         clusters = analyzer.get_paragraph_clusters(min_similarity=similarity_threshold)
         
+        # Ensure each cluster has a match_type (add if missing)
+        for cluster in clusters:
+            if 'match_type' not in cluster:
+                # Default to 'similar' if not specified
+                cluster['match_type'] = 'similar'
+        
         # Filter clusters by paragraph type if specified
         if para_type != 'all':
             clusters = [c for c in clusters if c.get('paragraph_type') == para_type]
@@ -316,6 +322,11 @@ def create_app():
                 filtered_cluster['paragraphs'] = paragraphs_in_selected_docs
                 filtered_cluster['paragraph_count'] = len(paragraphs_in_selected_docs)
                 filtered_cluster['document_count'] = len(set(p.document_id for p in paragraphs_in_selected_docs))
+                
+                # Ensure match_type is present
+                if 'match_type' not in filtered_cluster:
+                    filtered_cluster['match_type'] = 'similar'
+                    
                 filtered_clusters.append(filtered_cluster)
         
         # Generate visualizations
@@ -355,8 +366,8 @@ def create_app():
         # Calculate metrics
         metrics = {
             'total_paragraphs': sum(len(Paragraph.query.filter_by(document_id=doc_id).all()) for doc_id in doc_ids),
-            'duplicate_paragraphs': sum(c['paragraph_count'] for c in filtered_clusters if c['match_type'] == 'exact'),
-            'similar_paragraphs': sum(c['paragraph_count'] for c in filtered_clusters if c['match_type'] == 'similar'),
+            'duplicate_paragraphs': sum(c['paragraph_count'] for c in filtered_clusters if c.get('match_type') == 'exact'),
+            'similar_paragraphs': sum(c['paragraph_count'] for c in filtered_clusters if c.get('match_type') == 'similar'),
             'avg_similarity': sum(c.get('similarity', 0.9) for c in filtered_clusters) / len(filtered_clusters) if filtered_clusters else 0
         }
         
@@ -476,7 +487,7 @@ def create_app():
                 })
             
             result.append({
-                'match_type': group['match_type'],
+                'match_type': group.get('match_type', 'similar'),  # Ensure match_type is present
                 'document_count': group['document_count'],
                 'paragraph_count': group['paragraph_count'],
                 'paragraphs': paragraphs,

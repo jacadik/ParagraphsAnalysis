@@ -130,7 +130,7 @@ def get_paragraph_matches(doc1_id, doc2_id, threshold=0.7, method="hybrid"):
         
         for p2 in potential_matches:
             # Skip if this paragraph already has an exact match
-            if any(m.get('paragraph').id == p2.id and m.get('match_type') == 'exact' 
+            if any(m.get('paragraph').id == p2.id and m.get('match_type', '') == 'exact' 
                    for matches_list in matches for m in matches_list.get('matches', [])):
                 continue
                 
@@ -146,7 +146,7 @@ def get_paragraph_matches(doc1_id, doc2_id, threshold=0.7, method="hybrid"):
                 para_matches.append({
                     'paragraph': p2,
                     'similarity': similarity,
-                    'match_type': 'similar'
+                    'match_type': 'similar'  # Ensure this is always set
                 })
         
         # Only include if there are matches
@@ -459,10 +459,11 @@ def find_common_paragraphs(doc_ids, similarity_threshold=0.85, min_length=50):
         if len(doc_ids_in_group) > 1:
             final_groups.append({
                 'paragraphs': group,
-                'match_type': 'exact',
+                'match_type': 'exact',  # Ensure this is set
                 'document_count': len(doc_ids_in_group),
                 'paragraph_count': len(group),
-                'sample_text': group[0].text if group else ""
+                'sample_text': group[0].text if group else "",
+                'paragraph_type': group[0].paragraph_type if group else "regular"  # Add paragraph type
             })
     
     # Add similarity groups
@@ -470,10 +471,11 @@ def find_common_paragraphs(doc_ids, similarity_threshold=0.85, min_length=50):
         doc_ids_in_group = set(para.document_id for para in group)
         final_groups.append({
             'paragraphs': group,
-            'match_type': 'similar',
+            'match_type': 'similar',  # Ensure this is set
             'document_count': len(doc_ids_in_group),
             'paragraph_count': len(group),
-            'sample_text': group[0].text if group else ""
+            'sample_text': group[0].text if group else "",
+            'paragraph_type': group[0].paragraph_type if group else "regular"  # Add paragraph type
         })
     
     # Sort by document count (most common first)
